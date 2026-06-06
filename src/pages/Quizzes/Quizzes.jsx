@@ -1,4 +1,5 @@
 // src/pages/Quizzes/Quizzes.jsx
+import { useUserProgress } from '../../hooks/useUserProgress'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -470,13 +471,14 @@ function Quizzes() {
   const [activeQuiz, setActiveQuiz] = useState(null)
   const [answers, setAnswers]       = useState(null)
   const [scores, setScores]         = useState({})
+  const { saveQuizScore }           = useUserProgress()
 
   function startQuiz(quiz) {
     setActiveQuiz(quiz)
     setAnswers(null)
   }
 
-  function finishQuiz(ans) {
+  async function finishQuiz(ans) {
     const correct = ans.filter((a, i) => a === activeQuiz.questions[i].correct).length
     const score   = Math.round((correct / activeQuiz.questions.length) * 100)
     setAnswers(ans)
@@ -484,38 +486,15 @@ function Quizzes() {
       ...prev,
       [activeQuiz.id]: Math.max(score, prev[activeQuiz.id] ?? 0),
     }))
+    await saveQuizScore(activeQuiz.id, activeQuiz.title, score)
   }
 
-  function restartQuiz() {
-    setAnswers(null)
-  }
+  function restartQuiz() { setAnswers(null) }
+  function backToGrid()   { setActiveQuiz(null); setAnswers(null) }
 
-  function backToGrid() {
-    setActiveQuiz(null)
-    setAnswers(null)
-  }
-
-  if (!activeQuiz) {
-    return <QuizGrid scores={scores} onStart={startQuiz} />
-  }
-
-  if (answers) {
-    return (
-      <ScoreScreen
-        quiz={activeQuiz}
-        answers={answers}
-        onRestart={restartQuiz}
-        onBack={backToGrid}
-      />
-    )
-  }
-
-  return (
-    <ActiveQuiz
-      quiz={activeQuiz}
-      onFinish={finishQuiz}
-    />
-  )
+  if (!activeQuiz) return <QuizGrid scores={scores} onStart={startQuiz} />
+  if (answers)     return <ScoreScreen quiz={activeQuiz} answers={answers} onRestart={restartQuiz} onBack={backToGrid} />
+  return <ActiveQuiz quiz={activeQuiz} onFinish={finishQuiz} />
 }
 
 export default Quizzes
