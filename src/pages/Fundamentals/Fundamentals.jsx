@@ -1,4 +1,5 @@
 // src/pages/Fundamentals/Fundamentals.jsx
+import { useUserProgress } from '../../hooks/useUserProgress'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, ChevronRight, ArrowLeft } from 'lucide-react'
@@ -14,14 +15,18 @@ const colorMap = {
 }
 
 function Fundamentals() {
+  const { saveCompletedModule } = useUserProgress()
   const [selected, setSelected]   = useState(null)
   const [completed, setCompleted] = useState([])
 
   const topic = fundamentalsData.find(t => t.id === selected)
 
   function markComplete(id) {
-    if (!completed.includes(id)) setCompleted([...completed, id])
+  if (!completed.includes(id)) {
+    setCompleted([...completed, id])
+    saveCompletedModule(`fundamentals-${id}`)
   }
+}
 
   // ── Topic List View ──────────────────────────────────────────
   if (!selected) {

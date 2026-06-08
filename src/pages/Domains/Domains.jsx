@@ -1,4 +1,5 @@
 // src/pages/Domains/Domains.jsx
+import { useUserProgress } from '../../hooks/useUserProgress'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
@@ -263,15 +264,19 @@ function DetailView({ domain, done, onBack, onComplete }) {
 
 // ── Main Component ─────────────────────────────────────────────
 function Domains() {
+  const { saveCompletedModule } = useUserProgress()
   const [selected, setSelected]   = useState(null)
   const [completed, setCompleted] = useState([])
 
   const domain = domainsData.find(d => d.id === selected)
 
   function markComplete(id) {
-    if (!completed.includes(id)) setCompleted([...completed, id])
-    setSelected(null)
+  if (!completed.includes(id)) {
+    setCompleted([...completed, id])
+    saveCompletedModule(`domains-${id}`)
   }
+  setSelected(null)
+}
 
   if (!selected) {
     return <GridView completed={completed} onSelect={setSelected} />

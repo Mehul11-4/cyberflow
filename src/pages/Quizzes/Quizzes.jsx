@@ -471,7 +471,18 @@ function Quizzes() {
   const [activeQuiz, setActiveQuiz] = useState(null)
   const [answers, setAnswers]       = useState(null)
   const [scores, setScores]         = useState({})
-  const { saveQuizScore }           = useUserProgress()
+  const { progress, saveQuizScore } = useUserProgress()
+
+  // Load existing scores from Firestore into local state
+  useEffect(() => {
+    if (progress?.quizScores) {
+      const loaded = {}
+      Object.entries(progress.quizScores).forEach(([id, data]) => {
+        loaded[Number(id)] = data.score
+      })
+      setScores(loaded)
+    }
+  }, [progress])
 
   function startQuiz(quiz) {
     setActiveQuiz(quiz)

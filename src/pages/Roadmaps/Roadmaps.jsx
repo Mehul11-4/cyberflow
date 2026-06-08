@@ -1,4 +1,5 @@
 // src/pages/Roadmaps/Roadmaps.jsx
+import { useUserProgress } from '../../hooks/useUserProgress'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
@@ -282,15 +283,19 @@ function RoadmapDetail({ roadmap, done, onBack, onComplete }) {
 
 // ── Main Component ─────────────────────────────────────────────
 function Roadmaps() {
+  const { saveCompletedModule } = useUserProgress()
   const [selected, setSelected]   = useState(null)
   const [completed, setCompleted] = useState([])
 
   const roadmap = roadmapsData.find(r => r.id === selected)
 
   function markComplete(id) {
-    if (!completed.includes(id)) setCompleted([...completed, id])
-    setSelected(null)
+  if (!completed.includes(id)) {
+    setCompleted([...completed, id])
+    saveCompletedModule(`roadmaps-${id}`)
   }
+  setSelected(null)
+}
 
   if (!selected) {
     return (
