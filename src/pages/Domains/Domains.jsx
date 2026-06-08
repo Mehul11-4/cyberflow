@@ -1,181 +1,218 @@
 // src/pages/Domains/Domains.jsx
-import { useUserProgress } from '../../hooks/useUserProgress'
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, CheckCircle, Wrench,
   Lightbulb, Briefcase, BookOpen,
   Award, ChevronDown, ChevronUp
 } from 'lucide-react'
 import { domainsData } from '../../data/domains'
-import DomainCard from '../../components/ui/DomainCard'
+import { useUserProgress } from '../../hooks/useUserProgress'
 
 const colorMap = {
-  cyan:   { text: 'text-cyan-400',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/30'   },
-  purple: { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
-  blue:   { text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30'   },
-  green:  { text: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30'  },
-  yellow: { text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30' },
-  red:    { text: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30'    },
-  orange: { text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
-  pink:   { text: 'text-pink-400',   bg: 'bg-pink-500/10',   border: 'border-pink-500/30'   },
+  cyan:   '#06b6d4', purple: '#8b5cf6', blue:   '#3b82f6',
+  green:  '#10b981', yellow: '#f59e0b', red:    '#ef4444',
+  orange: '#f97316', pink:   '#ec4899',
 }
 
-const stageColor = {
-  green:  { text: 'text-green-400',  bg: 'bg-green-500/10',  border: 'border-green-500/30',  badge: 'bg-green-500/20 text-green-400'  },
-  yellow: { text: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', badge: 'bg-yellow-500/20 text-yellow-400' },
-  red:    { text: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30',    badge: 'bg-red-500/20 text-red-400'      },
+const stageColors = {
+  green:  '#10b981',
+  yellow: '#f59e0b',
+  red:    '#ef4444',
 }
 
 const certLevel = {
-  'Beginner':     'bg-green-500/10 text-green-400 border-green-500/20',
-  'Intermediate': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  'Advanced':     'bg-red-500/10 text-red-400 border-red-500/20',
+  'Beginner':     { bg: 'rgba(16,185,129,0.1)',  text: '#10b981', border: 'rgba(16,185,129,0.2)'  },
+  'Intermediate': { bg: 'rgba(245,158,11,0.1)',  text: '#f59e0b', border: 'rgba(245,158,11,0.2)'  },
+  'Advanced':     { bg: 'rgba(239,68,68,0.1)',   text: '#ef4444', border: 'rgba(239,68,68,0.2)'   },
 }
 
-// Collapsible section wrapper
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+}
+const cardAnim = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.35 } },
+}
+
 function Section({ title, icon: Icon, color, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden"
-    >
+    <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(17,24,39,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-800/50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors"
       >
-        <h3 className={`font-semibold flex items-center gap-2 ${color}`}>
-          <Icon size={16} /> {title}
+        <h3 className="font-semibold flex items-center gap-2 text-sm" style={{ color }}>
+          <Icon size={15} /> {title}
         </h3>
-        {open
-          ? <ChevronUp size={16} className="text-gray-500" />
-          : <ChevronDown size={16} className="text-gray-500" />
-        }
+        {open ? <ChevronUp size={15} className="text-gray-600" /> : <ChevronDown size={15} className="text-gray-600" />}
       </button>
       {open && <div className="px-5 pb-5">{children}</div>}
-    </motion.div>
+    </div>
   )
 }
 
-// ── Grid View ──────────────────────────────────────────────────
-function GridView({ completed, onSelect }) {
+function DomainGrid({ completed, onSelect }) {
+  const pct = Math.round((completed.length / domainsData.length) * 100)
+
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-3xl font-bold text-white">🌍 Cybersecurity Domains</h1>
-        <p className="text-gray-400 mt-2">
-          Explore each domain in depth — learn the path, required knowledge, and certifications.
-        </p>
-        <div className="mt-4">
-          <div className="flex justify-between text-sm text-gray-500 mb-1">
-            <span>{completed.length} of {domainsData.length} domains explored</span>
-            <span>{Math.round((completed.length / domainsData.length) * 100)}%</span>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)' }}>
+            🌍
           </div>
-          <div className="w-full bg-gray-800 rounded-full h-2">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">Cybersecurity Domains</h1>
+            <p className="text-gray-500 text-sm">Explore each domain and find your specialization</p>
+          </div>
+        </div>
+
+        <div className="mt-5 p-4 rounded-2xl" style={{ background: 'rgba(17,24,39,0.8)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-gray-400">{completed.length} of {domainsData.length} domains explored</span>
+            <span className="font-bold" style={{ color: '#8b5cf6' }}>{pct}%</span>
+          </div>
+          <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
             <motion.div
-              className="bg-purple-500 h-2 rounded-full"
+              className="h-full rounded-full"
+              style={{ background: 'linear-gradient(90deg, #8b5cf6, #ec4899)' }}
               initial={{ width: 0 }}
-              animate={{ width: `${(completed.length / domainsData.length) * 100}%` }}
-              transition={{ duration: 0.5 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.6 }}
             />
           </div>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {domainsData.map((domain, i) => (
-          <DomainCard
-            key={domain.id}
-            domain={domain}
-            onClick={() => onSelect(domain.id)}
-            completed={completed.includes(domain.id)}
-            delay={i * 0.07}
-          />
-        ))}
-      </div>
+      <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {domainsData.map(domain => {
+          const color = colorMap[domain.color]
+          const done  = completed.includes(domain.id)
+          return (
+            <motion.div
+              key={domain.id}
+              variants={cardAnim}
+              onClick={() => onSelect(domain.id)}
+              whileHover={{ scale: 1.03, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              className="relative rounded-2xl p-5 cursor-pointer overflow-hidden"
+              style={{
+                background: `rgba(17,24,39,0.8)`,
+                border:     `1px solid ${color}30`,
+                boxShadow:  done ? 'none' : `0 4px 20px rgba(0,0,0,0.2)`,
+              }}
+            >
+              {/* Top glow */}
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${color}50, transparent)` }} />
+
+              {done && (
+                <div className="absolute top-3 right-3">
+                  <CheckCircle size={15} className="text-green-400" />
+                </div>
+              )}
+
+              <div className="text-3xl mb-3">{domain.icon}</div>
+              <h3 className="text-white font-semibold text-sm mb-1" style={{ color: done ? '#6b7280' : '#fff' }}>{domain.title}</h3>
+              <p className="text-gray-500 text-xs leading-relaxed mb-3">{domain.summary}</p>
+              <div className="flex items-center gap-1 text-xs font-medium" style={{ color }}>
+                Explore <ChevronDown size={11} className="rotate-[-90deg]" />
+              </div>
+            </motion.div>
+          )
+        })}
+      </motion.div>
     </div>
   )
 }
 
-// ── Detail View ────────────────────────────────────────────────
-function DetailView({ domain, done, onBack, onComplete }) {
-  const c = colorMap[domain.color]
+function DomainDetail({ domain, done, onBack, onComplete }) {
+  const color = colorMap[domain.color]
 
   return (
     <div className="max-w-3xl mx-auto space-y-5">
-
-      {/* Back */}
       <motion.button
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        whileHover={{ x: -3 }}
         onClick={onBack}
-        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+        className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
       >
-        <ArrowLeft size={16} /> Back to Domains
+        <ArrowLeft size={15} /> Back to Domains
       </motion.button>
 
-      {/* Hero Header */}
+      {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className={`rounded-2xl border p-6 ${c.bg} ${c.border}`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl p-6"
+        style={{ background: `${color}10`, border: `1px solid ${color}30`, boxShadow: `0 0 40px ${color}10` }}
       >
         <div className="flex items-center gap-4">
           <span className="text-5xl">{domain.icon}</span>
           <div>
-            <h1 className={`text-2xl font-bold ${c.text}`}>{domain.title}</h1>
-            <p className="text-gray-400 mt-1">{domain.summary}</p>
+            <h1 className="text-2xl font-bold" style={{ color }}>{domain.title}</h1>
+            <p className="text-gray-400 mt-1 text-sm">{domain.summary}</p>
           </div>
         </div>
       </motion.div>
 
       {/* What is it */}
-      <Section title={`What is ${domain.title}?`} icon={Lightbulb} color={c.text}>
+      <Section title={`What is ${domain.title}?`} icon={Lightbulb} color={color}>
         <p className="text-gray-400 text-sm leading-relaxed">{domain.what}</p>
       </Section>
 
       {/* Role */}
-      <Section title="What Do Professionals Do?" icon={Briefcase} color={c.text}>
+      <Section title="What Do Professionals Do?" icon={Briefcase} color={color}>
         <p className="text-gray-400 text-sm leading-relaxed">{domain.role}</p>
       </Section>
 
       {/* Learning Path */}
-      <Section title="Learning Path" icon={BookOpen} color={c.text}>
-        <div className="space-y-4">
+      <Section title="Learning Path" icon={BookOpen} color={color}>
+        <div className="space-y-3">
           {domain.learningPath.map((stage, i) => {
-            const sc = stageColor[stage.color]
+            const sc = stageColors[stage.color]
             return (
-              <div key={i} className={`rounded-xl border p-4 ${sc.bg} ${sc.border}`}>
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -15 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="rounded-xl p-4"
+                style={{ background: `${sc}10`, border: `1px solid ${sc}25` }}
+              >
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`font-bold text-sm ${sc.text}`}>
+                  <span className="font-bold text-sm" style={{ color: sc }}>
                     {i + 1}. {stage.stage}
                   </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${sc.badge}`}>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: `${sc}20`, color: sc }}>
                     {stage.duration}
                   </span>
                 </div>
-                <ol className="space-y-2">
+                <ol className="space-y-1.5">
                   {stage.steps.map((step, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm text-gray-300">
-                      <span className={`font-bold flex-shrink-0 ${sc.text}`}>{j + 1}.</span>
+                    <li key={j} className="flex items-start gap-2 text-xs text-gray-400">
+                      <span className="font-bold flex-shrink-0" style={{ color: sc }}>{j + 1}.</span>
                       {step}
                     </li>
                   ))}
                 </ol>
-              </div>
+              </motion.div>
             )
           })}
         </div>
       </Section>
 
-      {/* Knowledge Requirements */}
-      <Section title="Knowledge Requirements" icon={Lightbulb} color={c.text}>
+      {/* Knowledge */}
+      <Section title="Knowledge Requirements" icon={Lightbulb} color={color}>
         <div className="space-y-3">
           {domain.knowledge.map((item, i) => (
             <div key={i} className="flex gap-3">
-              <div className={`w-1.5 rounded-full flex-shrink-0 mt-1 ${c.bg} border ${c.border}`} />
+              <div className="w-1 rounded-full flex-shrink-0" style={{ background: color, minHeight: 16 }} />
               <div>
-                <p className={`text-sm font-semibold ${c.text}`}>{item.area}</p>
+                <p className="text-sm font-semibold" style={{ color }}>{item.area}</p>
                 <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">{item.detail}</p>
               </div>
             </div>
@@ -183,23 +220,22 @@ function DetailView({ domain, done, onBack, onComplete }) {
         </div>
       </Section>
 
-      {/* Tools + Concepts side by side */}
+      {/* Concepts + Tools */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Section title="Key Concepts" icon={Lightbulb} color={c.text} defaultOpen={true}>
+        <Section title="Key Concepts" icon={Lightbulb} color={color}>
           <ul className="space-y-2">
-            {domain.concepts.map((concept, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-gray-400">
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.bg} border ${c.border}`} />
-                {concept}
+            {domain.concepts.map((c, i) => (
+              <li key={i} className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                {c}
               </li>
             ))}
           </ul>
         </Section>
-
-        <Section title="Common Tools" icon={Wrench} color={c.text} defaultOpen={true}>
+        <Section title="Common Tools" icon={Wrench} color={color}>
           <div className="flex flex-wrap gap-2">
             {domain.tools.map((tool, i) => (
-              <span key={i} className={`text-xs px-2.5 py-1 rounded-full border ${c.bg} ${c.border} ${c.text}`}>
+              <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: `${color}15`, border: `1px solid ${color}30`, color }}>
                 {tool}
               </span>
             ))}
@@ -208,82 +244,79 @@ function DetailView({ domain, done, onBack, onComplete }) {
       </div>
 
       {/* Certifications */}
-      <Section title="Recommended Certifications" icon={Award} color={c.text}>
+      <Section title="Recommended Certifications" icon={Award} color={color}>
         <div className="space-y-3">
-          {domain.certifications.map((cert, i) => (
-            <div key={i} className="flex gap-3 items-start">
-              <span className="text-lg flex-shrink-0">🏅</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-white text-sm font-semibold">{cert.name}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${certLevel[cert.level]}`}>
-                    {cert.level}
-                  </span>
+          {domain.certifications.map((cert, i) => {
+            const cl = certLevel[cert.level]
+            return (
+              <div key={i} className="flex gap-3 items-start">
+                <span className="text-lg flex-shrink-0">🏅</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-white text-sm font-semibold">{cert.name}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: cl.bg, color: cl.text, border: `1px solid ${cl.border}` }}>
+                      {cert.level}
+                    </span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1 leading-relaxed">{cert.relevance}</p>
                 </div>
-                <p className="text-gray-500 text-xs mt-1 leading-relaxed">{cert.relevance}</p>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </Section>
 
-      {/* Career Paths */}
-      <Section title="Career Paths" icon={Briefcase} color={c.text}>
+      {/* Careers */}
+      <Section title="Career Paths" icon={Briefcase} color={color}>
         <div className="flex flex-wrap gap-2">
-          {domain.careers.map((career, i) => (
-            <span key={i} className="text-xs px-3 py-1.5 rounded-full bg-gray-800 border border-gray-700 text-gray-300">
-              {career}
+          {domain.careers.map((c, i) => (
+            <span key={i} className="text-xs px-3 py-1.5 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#d1d5db' }}>
+              {c}
             </span>
           ))}
         </div>
       </Section>
 
       {/* Mark Complete */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="flex justify-end pb-8"
-      >
-        <button
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex justify-end pb-8">
+        <motion.button
           onClick={onComplete}
           disabled={done}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200
-            ${done
-              ? 'bg-green-500/10 text-green-400 border border-green-500/20 cursor-not-allowed'
-              : 'bg-purple-500 hover:bg-purple-400 text-white hover:scale-105'
-            }`}
+          whileHover={!done ? { scale: 1.05 } : {}}
+          whileTap={!done ? { scale: 0.97 } : {}}
+          className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm"
+          style={done
+            ? { background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', cursor: 'not-allowed' }
+            : { background: `linear-gradient(135deg, ${color}, ${color}bb)`, color: '#000', boxShadow: `0 0 20px ${color}40` }
+          }
         >
-          <CheckCircle size={18} />
+          <CheckCircle size={16} />
           {done ? 'Explored ✓' : 'Mark as Explored'}
-        </button>
+        </motion.button>
       </motion.div>
-
     </div>
   )
 }
 
-// ── Main Component ─────────────────────────────────────────────
 function Domains() {
-  const { saveCompletedModule } = useUserProgress()
   const [selected, setSelected]   = useState(null)
   const [completed, setCompleted] = useState([])
+  const { saveCompletedModule }   = useUserProgress()
 
   const domain = domainsData.find(d => d.id === selected)
 
   function markComplete(id) {
-  if (!completed.includes(id)) {
-    setCompleted([...completed, id])
-    saveCompletedModule(`domains-${id}`)
+    if (!completed.includes(id)) {
+      setCompleted([...completed, id])
+      saveCompletedModule(`domains-${id}`)
+    }
+    setSelected(null)
   }
-  setSelected(null)
-}
 
-  if (!selected) {
-    return <GridView completed={completed} onSelect={setSelected} />
-  }
+  if (!selected) return <DomainGrid completed={completed} onSelect={setSelected} />
 
   return (
-    <DetailView
+    <DomainDetail
       domain={domain}
       done={completed.includes(domain.id)}
       onBack={() => setSelected(null)}
