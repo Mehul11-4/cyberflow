@@ -5,7 +5,8 @@ function MainLayout({ children }) {
   return (
     <div className="flex bg-gray-950 min-h-screen">
       <Sidebar />
-      <main className="ml-64 flex-1 p-8">
+      {/* Desktop: margin-left for sidebar. Mobile: padding-top for top bar */}
+      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0 p-4 lg:p-8 min-w-0">
         {children}
       </main>
     </div>

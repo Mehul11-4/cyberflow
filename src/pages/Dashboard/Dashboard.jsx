@@ -60,22 +60,22 @@ function Dashboard() {
     <div className="max-w-6xl mx-auto space-y-8">
 
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="flex items-center justify-between flex-wrap gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            Welcome back, {user?.displayName?.split(' ')[0] || 'Student'} 👋
-          </h1>
-          <p className="text-gray-500 mt-1">{today}</p>
-        </div>
-        <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium px-4 py-2 rounded-full">
-          🎯 60-Day Challenge Active
-        </div>
-      </motion.div>
+<motion.div
+  initial={{ opacity: 0, y: -10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4 }}
+  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+>
+  <div>
+    <h1 className="text-2xl lg:text-3xl font-bold text-white">
+      Welcome back, {user?.displayName?.split(' ')[0] || 'Student'} 👋
+    </h1>
+    <p className="text-gray-500 mt-1 text-sm">{today}</p>
+  </div>
+  <div className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-medium px-3 py-2 rounded-full self-start sm:self-auto">
+    🎯 60-Day Challenge Active
+  </div>
+</motion.div>
 
       {/* Stats Row */}
       {loading ? (
@@ -91,34 +91,34 @@ function Dashboard() {
       )}
 
       {/* Continue Learning Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-cyan-500/20 rounded-2xl p-6 flex items-center justify-between gap-4 flex-wrap"
-      >
-        <div>
-          <p className="text-cyan-400 text-sm font-semibold uppercase tracking-wider mb-1">
-            {completedModules === 0 ? 'Start Here' : 'Continue Learning'}
-          </p>
-          <h2 className="text-white text-xl font-bold">
-            {completedModules === 0
-              ? 'Cybersecurity Fundamentals'
-              : `${completedModules} of ${totalModules} modules complete`
-            }
-          </h2>
-          <p className="text-gray-400 text-sm mt-1">
-            {completedModules === 0
-              ? 'Begin with the CIA Triad, Threat Actors, and Types of Attacks.'
-              : `Keep going — you're ${completionPct}% through the curriculum.`
-            }
-          </p>
-        </div>
-        <button className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold px-5 py-3 rounded-xl transition-all duration-200 hover:scale-105">
-          <Play size={16} />
-          {completedModules === 0 ? 'Begin' : 'Continue'}
-        </button>
-      </motion.div>
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.4, delay: 0.2 }}
+  className="bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10 border border-cyan-500/20 rounded-2xl p-5 lg:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+>
+  <div>
+    <p className="text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-1">
+      {completedModules === 0 ? 'Start Here' : 'Continue Learning'}
+    </p>
+    <h2 className="text-white text-lg lg:text-xl font-bold">
+      {completedModules === 0
+        ? 'Cybersecurity Fundamentals'
+        : `${completedModules} of ${totalModules} modules complete`
+      }
+    </h2>
+    <p className="text-gray-400 text-sm mt-1">
+      {completedModules === 0
+        ? 'Begin with the CIA Triad, Threat Actors, and Types of Attacks.'
+        : `Keep going — you're ${completionPct}% through the curriculum.`
+      }
+    </p>
+  </div>
+  <button className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold px-5 py-3 rounded-xl transition-all duration-200 hover:scale-105 flex-shrink-0">
+    <Play size={16} />
+    {completedModules === 0 ? 'Begin' : 'Continue'}
+  </button>
+</motion.div>
 
       {/* Recommended Topics */}
       <div>
