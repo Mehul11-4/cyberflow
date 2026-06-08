@@ -1,18 +1,14 @@
 // src/pages/Labs/NetworkLab.jsx
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  useNodesState,
-  useEdgesState,
-  MarkerType,
+  ReactFlow, Background, Controls,
+  useNodesState, useEdgesState, MarkerType,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import {
-  Play, Square, ChevronRight,
-  ChevronLeft, Info, X, Layers
+  Play, Square, ChevronRight, ChevronLeft,
+  Layers, Info, X, Smartphone, Monitor
 } from 'lucide-react'
 import { deviceInfo, protocols } from '../../data/networkLab'
 import NetworkNode from '../../components/ui/NetworkNode'
@@ -42,9 +38,7 @@ const initialEdges = [
 ]
 
 function getEdgeId(src, dst) {
-  const pairs = [
-    [src, dst], [dst, src]
-  ]
+  const pairs = [[src, dst], [dst, src]]
   for (const [a, b] of pairs) {
     const id = `e-${a}-${b}`
     if (initialEdges.find(e => e.id === id)) return id
@@ -52,88 +46,286 @@ function getEdgeId(src, dst) {
   return null
 }
 
-function NetworkLab() {
+// ── Mobile Guided Mode ─────────────────────────────────────────
+function MobileGuidedMode({ protocol, onBack }) {
+  const [step, setStep] = useState(0)
+  const totalSteps = protocol.steps.length
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors"
+      >
+        <ChevronLeft size={16} /> Back to simulations
+      </button>
+
+      {/* Protocol header */}
+      <div
+        className="rounded-2xl p-4 border"
+        style={{ backgroundColor: protocol.color + '10', borderColor: protocol.color + '40' }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{protocol.emoji}</span>
+          <div>
+            <h2 className="text-white font-bold">{protocol.label}</h2>
+            <p className="text-gray-400 text-xs mt-0.5">{protocol.description}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      <div className="flex gap-2 justify-center">
+        {protocol.steps.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setStep(i)}
+            className="rounded-full transition-all duration-300"
+            style={{
+              width: i === step ? 20 : 8,
+              height: 8,
+              backgroundColor: i <= step ? protocol.color : '#374151',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Step card */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ duration: 0.25 }}
+          className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden"
+        >
+          {/* Step header */}
+          <div
+            className="px-4 py-3 flex items-center justify-between"
+            style={{ backgroundColor: protocol.color + '15' }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">
+                {deviceInfo[protocol.steps[step].device]?.icon}
+              </span>
+              <div>
+                <p className="text-white font-semibold text-sm">
+                  {protocol.steps[step].title}
+                </p>
+                <p className="text-xs" style={{ color: protocol.color }}>
+                  Step {step + 1} of {totalSteps} · {protocol.steps[step].layer}
+                </p>
+              </div>
+            </div>
+            <span
+              className="text-xs font-bold px-2 py-1 rounded-full"
+              style={{ backgroundColor: protocol.color + '20', color: protocol.color }}
+            >
+              {deviceInfo[protocol.steps[step].device]?.label}
+            </span>
+          </div>
+
+          {/* Step content */}
+          <div className="p-4 space-y-3">
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {protocol.steps[step].explanation}
+            </p>
+
+            {/* Packet preview */}
+            <div
+              className="rounded-xl p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap overflow-x-auto"
+              style={{
+                backgroundColor: protocol.color + '08',
+                borderLeft: `3px solid ${protocol.color}`,
+                color: protocol.color,
+              }}
+            >
+              {protocol.steps[step].packet}
+            </div>
+
+            {/* Device info */}
+            <div className="bg-gray-800 rounded-xl p-3">
+              <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">
+                About this device
+              </p>
+              <p className="text-gray-400 text-xs leading-relaxed">
+                {deviceInfo[protocol.steps[step].device]?.description}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Navigation buttons */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setStep(s => Math.max(0, s - 1))}
+          disabled={step === 0}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 disabled:opacity-30 hover:text-white transition-all text-sm font-medium"
+        >
+          <ChevronLeft size={16} /> Previous
+        </button>
+        <button
+          onClick={() => setStep(s => Math.min(totalSteps - 1, s + 1))}
+          disabled={step === totalSteps - 1}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all disabled:opacity-30"
+          style={{ backgroundColor: protocol.color, color: '#000' }}
+        >
+          Next <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {step === totalSteps - 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 text-center"
+        >
+          <p className="text-green-400 font-semibold text-sm">
+            ✅ Simulation Complete!
+          </p>
+          <p className="text-gray-500 text-xs mt-1">
+            You've followed the full {protocol.label} flow.
+          </p>
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
+// ── Mobile Protocol Selector ───────────────────────────────────
+function MobileNetworkLab() {
+  const [selected, setSelected] = useState(null)
+
+  if (selected) {
+    return <MobileGuidedMode protocol={selected} onBack={() => setSelected(null)} />
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-white">🌐 Network Lab</h1>
+        <p className="text-gray-400 text-sm mt-1">
+          Choose a simulation to follow step by step.
+        </p>
+      </div>
+
+      {/* Device reference */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <p className="text-white font-semibold text-sm mb-3">Network Devices</p>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.values(deviceInfo).map((device, i) => (
+            <div key={i} className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2">
+              <span className="text-lg">{device.icon}</span>
+              <div>
+                <p className="text-white text-xs font-medium">{device.label}</p>
+                <p className="text-gray-500 text-xs leading-tight line-clamp-1">
+                  {device.description.split('.')[0]}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Protocol cards */}
+      <div className="space-y-3">
+        <p className="text-white font-semibold text-sm">Choose a Simulation</p>
+        {protocols.map((p, i) => (
+          <motion.button
+            key={p.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
+            onClick={() => setSelected(p)}
+            className="w-full text-left rounded-2xl border p-4 transition-all duration-200 active:scale-[0.98]"
+            style={{
+              backgroundColor: p.color + '08',
+              borderColor: p.color + '30',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">{p.emoji}</span>
+              <div className="flex-1">
+                <p className="text-white font-semibold text-sm">{p.label}</p>
+                <p className="text-gray-400 text-xs mt-0.5 leading-relaxed">
+                  {p.description}
+                </p>
+              </div>
+              <div
+                className="text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0"
+                style={{ backgroundColor: p.color + '20', color: p.color }}
+              >
+                {p.steps.length} steps
+              </div>
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Desktop Network Lab (unchanged logic, kept intact) ─────────
+function DesktopNetworkLab() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [selectedDevice, setSelectedDevice] = useState(null)
   const [activeProtocol, setActiveProtocol] = useState(null)
   const [currentStep, setCurrentStep]       = useState(-1)
   const [isPlaying, setIsPlaying]           = useState(false)
-  const [isPaused, setIsPaused]             = useState(false)
   const timerRef = useRef(null)
-
   const totalSteps = activeProtocol?.steps?.length ?? 0
 
-  // ── Highlight helpers ────────────────────────────────────────
   function highlightStep(protocol, stepIndex) {
     const step     = protocol.steps[stepIndex]
     const deviceId = step.device
     const path     = protocol.path
     const color    = protocol.color
-
-    // Highlight active node
     setNodes(nds => nds.map(n => ({
       ...n,
-      data: {
-        ...n.data,
-        active:   n.id === deviceId,
-        selected: n.id === deviceId,
-      },
+      data: { ...n.data, active: n.id === deviceId, selected: n.id === deviceId },
     })))
-
-    // Highlight edges up to current step
     setEdges(eds => eds.map(e => {
       let isActive = false
       for (let i = 0; i < stepIndex; i++) {
         const edgeId = getEdgeId(path[i], path[i + 1])
         if (edgeId === e.id) { isActive = true; break }
       }
-      const isCurrent = getEdgeId(
-        path[stepIndex - 1] ?? '',
-        path[stepIndex] ?? ''
-      ) === e.id
-
+      const isCurrent = getEdgeId(path[stepIndex - 1] ?? '', path[stepIndex] ?? '') === e.id
       return {
         ...e,
         animated: isCurrent,
         style: {
           ...e.style,
-          stroke: isCurrent ? color
-                : isActive  ? color + '60'
-                : '#374151',
-          strokeWidth: isCurrent ? 4 : isActive ? 2 : 2,
+          stroke: isCurrent ? color : isActive ? color + '60' : '#374151',
+          strokeWidth: isCurrent ? 4 : 2,
         },
-        markerEnd: {
-          type:  MarkerType.ArrowClosed,
-          color: isCurrent ? color : isActive ? color + '60' : '#374151',
-        },
+        markerEnd: { type: MarkerType.ArrowClosed, color: isCurrent ? color : isActive ? color + '60' : '#374151' },
       }
     }))
   }
 
   function resetDiagram() {
     clearTimeout(timerRef.current)
-    setNodes(nds => nds.map(n => ({
-      ...n,
-      data: { ...n.data, selected: false, active: false },
-    })))
+    setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, selected: false, active: false } })))
     setEdges(initialEdges)
     setCurrentStep(-1)
     setIsPlaying(false)
-    setIsPaused(false)
+    setActiveProtocol(null)
   }
 
-  // ── Start simulation ─────────────────────────────────────────
   function startSimulation(protocol) {
     resetDiagram()
-    setActiveProtocol(protocol)
-    setCurrentStep(0)
-    setIsPlaying(true)
-    setIsPaused(false)
-    highlightStep(protocol, 0)
+    setTimeout(() => {
+      setActiveProtocol(protocol)
+      setCurrentStep(0)
+      setIsPlaying(true)
+      highlightStep(protocol, 0)
+    }, 50)
   }
 
-  // ── Auto-advance ─────────────────────────────────────────────
   function scheduleNext(protocol, nextStep) {
     clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
@@ -149,15 +341,12 @@ function NetworkLab() {
 
   function playAuto() {
     if (!activeProtocol) return
-    setIsPaused(false)
     setIsPlaying(true)
-    const next = currentStep + 1
-    scheduleNext(activeProtocol, next)
+    scheduleNext(activeProtocol, currentStep + 1)
   }
 
   function pauseSim() {
     clearTimeout(timerRef.current)
-    setIsPaused(true)
     setIsPlaying(false)
   }
 
@@ -177,47 +366,28 @@ function NetworkLab() {
     setCurrentStep(prev)
     highlightStep(activeProtocol, prev)
     setIsPlaying(false)
-    setIsPaused(true)
   }
 
   const selectDevice = useCallback((id) => {
     setSelectedDevice(deviceInfo[id])
-    setNodes(nds => nds.map(n => ({
-      ...n,
-      data: { ...n.data, selected: n.id === id },
-    })))
+    setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, selected: n.id === id } })))
   }, [setNodes])
 
-  const nodesWithHandler = nodes.map(n => ({
-    ...n,
-    data: { ...n.data, onSelect: selectDevice },
-  }))
-
-  const currentStepData = activeProtocol && currentStep >= 0
-    ? activeProtocol.steps[currentStep]
-    : null
+  const nodesWithHandler = nodes.map(n => ({ ...n, data: { ...n.data, onSelect: selectDevice } }))
+  const currentStepData  = activeProtocol && currentStep >= 0 ? activeProtocol.steps[currentStep] : null
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-3xl font-bold text-white">🌐 Network Visualization Lab</h1>
-        <p className="text-gray-400 mt-1">
-          Simulate packet flow step by step. Click any device to learn what it does.
-        </p>
+        <p className="text-gray-400 mt-1">Simulate packet flow step by step. Click any device to learn what it does.</p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* ── Left Panel ─────────────────────────────────────── */}
+        {/* Left Panel */}
         <div className="space-y-4">
-
-          {/* Protocol buttons */}
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-            <h3 className="text-white font-semibold mb-3 text-sm">
-              Choose a Simulation
-            </h3>
+            <h3 className="text-white font-semibold mb-3 text-sm">Choose a Simulation</h3>
             <div className="space-y-2">
               {protocols.map(p => (
                 <button
@@ -232,15 +402,12 @@ function NetworkLab() {
                 >
                   <span>{p.emoji}</span>
                   <span>{p.label}</span>
-                  {activeProtocol?.id === p.id && (
-                    <span className="ml-auto text-xs opacity-60">Active</span>
-                  )}
+                  {activeProtocol?.id === p.id && <span className="ml-auto text-xs opacity-60">Active</span>}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Step explanation card */}
           <AnimatePresence mode="wait">
             {currentStepData && (
               <motion.div
@@ -248,186 +415,74 @@ function NetworkLab() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.3 }}
                 className="bg-gray-900 border rounded-xl p-4 space-y-3"
                 style={{ borderColor: activeProtocol.color + '40' }}
               >
-                {/* Step counter */}
                 <div className="flex items-center justify-between">
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: activeProtocol.color + '20', color: activeProtocol.color }}
-                  >
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: activeProtocol.color + '20', color: activeProtocol.color }}>
                     Step {currentStep + 1} of {totalSteps}
                   </span>
                   <span className="text-xs text-gray-600 flex items-center gap-1">
                     <Layers size={11} /> {currentStepData.layer}
                   </span>
                 </div>
-
-                {/* Device + title */}
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">
-                    {deviceInfo[currentStepData.device]?.icon}
-                  </span>
-                  <p className="text-white font-semibold text-sm">
-                    {currentStepData.title}
-                  </p>
+                  <span className="text-xl">{deviceInfo[currentStepData.device]?.icon}</span>
+                  <p className="text-white font-semibold text-sm">{currentStepData.title}</p>
                 </div>
-
-                {/* Explanation */}
-                <p className="text-gray-400 text-xs leading-relaxed">
-                  {currentStepData.explanation}
-                </p>
-
-                {/* Packet preview */}
-                <div
-                  className="rounded-lg p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap"
-                  style={{
-                    backgroundColor: activeProtocol.color + '08',
-                    borderLeft: `3px solid ${activeProtocol.color}`,
-                    color: activeProtocol.color,
-                  }}
-                >
+                <p className="text-gray-400 text-xs leading-relaxed">{currentStepData.explanation}</p>
+                <div className="rounded-lg p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap" style={{ backgroundColor: activeProtocol.color + '08', borderLeft: `3px solid ${activeProtocol.color}`, color: activeProtocol.color }}>
                   {currentStepData.packet}
                 </div>
-
-                {/* Progress dots */}
                 <div className="flex gap-1.5 justify-center pt-1">
                   {activeProtocol.steps.map((_, i) => (
-                    <div
-                      key={i}
-                      className="rounded-full transition-all duration-300"
-                      style={{
-                        width:  i === currentStep ? 16 : 6,
-                        height: 6,
-                        backgroundColor: i <= currentStep
-                          ? activeProtocol.color
-                          : '#374151',
-                      }}
-                    />
+                    <div key={i} className="rounded-full transition-all duration-300" style={{ width: i === currentStep ? 16 : 6, height: 6, backgroundColor: i <= currentStep ? activeProtocol.color : '#374151' }} />
                   ))}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Playback controls */}
           {activeProtocol && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-gray-900 border border-gray-800 rounded-xl p-4"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <p className="text-gray-500 text-xs mb-3 text-center">Playback Controls</p>
               <div className="flex items-center justify-center gap-3">
-
-                <button
-                  onClick={goPrev}
-                  disabled={currentStep <= 0}
-                  className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-all"
-                >
+                <button onClick={goPrev} disabled={currentStep <= 0} className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-all">
                   <ChevronLeft size={16} />
                 </button>
-
-                {isPlaying ? (
-                  <button
-                    onClick={pauseSim}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all"
-                    style={{ backgroundColor: activeProtocol.color, color: '#000' }}
-                  >
-                    <Square size={14} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={playAuto}
-                    disabled={currentStep >= totalSteps - 1}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold disabled:opacity-30 transition-all"
-                    style={{ backgroundColor: activeProtocol.color, color: '#000' }}
-                  >
-                    <Play size={14} />
-                  </button>
-                )}
-
-                <button
-                  onClick={goNext}
-                  disabled={currentStep >= totalSteps - 1}
-                  className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-all"
-                >
+                {isPlaying
+                  ? <button onClick={pauseSim} className="w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all" style={{ backgroundColor: activeProtocol.color, color: '#000' }}><Square size={14} /></button>
+                  : <button onClick={playAuto} disabled={currentStep >= totalSteps - 1} className="w-10 h-10 rounded-xl flex items-center justify-center font-bold disabled:opacity-30 transition-all" style={{ backgroundColor: activeProtocol.color, color: '#000' }}><Play size={14} /></button>
+                }
+                <button onClick={goNext} disabled={currentStep >= totalSteps - 1} className="w-9 h-9 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 transition-all">
                   <ChevronRight size={16} />
                 </button>
-
               </div>
-
               <div className="mt-3 flex gap-1">
                 {activeProtocol.steps.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      clearTimeout(timerRef.current)
-                      setCurrentStep(i)
-                      highlightStep(activeProtocol, i)
-                      setIsPlaying(false)
-                      setIsPaused(true)
-                    }}
-                    className="flex-1 h-1.5 rounded-full transition-all duration-300"
-                    style={{
-                      backgroundColor: i <= currentStep
-                        ? activeProtocol.color
-                        : '#374151',
-                    }}
-                  />
+                  <button key={i} onClick={() => { clearTimeout(timerRef.current); setCurrentStep(i); highlightStep(activeProtocol, i); setIsPlaying(false) }} className="flex-1 h-1.5 rounded-full transition-all duration-300" style={{ backgroundColor: i <= currentStep ? activeProtocol.color : '#374151' }} />
                 ))}
               </div>
-
-              <button
-                onClick={resetDiagram}
-                className="mt-3 w-full text-xs text-gray-600 hover:text-gray-400 transition-colors text-center"
-              >
-                Reset
-              </button>
+              <button onClick={resetDiagram} className="mt-3 w-full text-xs text-gray-600 hover:text-gray-400 transition-colors text-center">Reset</button>
             </motion.div>
           )}
 
-          {/* Device info panel */}
           <AnimatePresence>
             {selectedDevice && !currentStepData && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4"
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-                    <Info size={14} className="text-cyan-400" /> Device Info
-                  </h3>
-                  <button onClick={() => setSelectedDevice(null)}>
-                    <X size={14} className="text-gray-500 hover:text-white" />
-                  </button>
+                  <h3 className="text-white font-semibold text-sm flex items-center gap-2"><Info size={14} className="text-cyan-400" /> Device Info</h3>
+                  <button onClick={() => setSelectedDevice(null)}><X size={14} className="text-gray-500 hover:text-white" /></button>
                 </div>
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-3 border"
-                  style={{
-                    backgroundColor: selectedDevice.color + '20',
-                    borderColor: selectedDevice.color + '40',
-                  }}
-                >
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-3 border" style={{ backgroundColor: selectedDevice.color + '20', borderColor: selectedDevice.color + '40' }}>
                   {selectedDevice.icon}
                 </div>
-                <p className="font-bold text-sm mb-1" style={{ color: selectedDevice.color }}>
-                  {selectedDevice.label}
-                </p>
-                <p className="text-gray-400 text-xs leading-relaxed mb-3">
-                  {selectedDevice.description}
-                </p>
+                <p className="font-bold text-sm mb-1" style={{ color: selectedDevice.color }}>{selectedDevice.label}</p>
+                <p className="text-gray-400 text-xs leading-relaxed mb-3">{selectedDevice.description}</p>
                 <ul className="space-y-1.5">
                   {selectedDevice.details.map((d, i) => (
                     <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
-                      <span
-                        className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0"
-                        style={{ backgroundColor: selectedDevice.color }}
-                      />
+                      <span className="w-1 h-1 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: selectedDevice.color }} />
                       {d}
                     </li>
                   ))}
@@ -436,85 +491,53 @@ function NetworkLab() {
             )}
           </AnimatePresence>
 
-          {/* How to use */}
           {!activeProtocol && (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
               <h3 className="text-white font-semibold mb-3 text-sm">How to Use</h3>
               <ul className="space-y-2 text-xs text-gray-500">
-                {[
-                  'Choose a simulation from the list above',
-                  'Use ▶ Play for auto-advance every 3 seconds',
-                  'Use ‹ › arrows to step manually at your own pace',
-                  'Click the timeline bar to jump to any step',
-                  'Click any device on the diagram to learn about it',
-                  'Drag devices to rearrange the diagram',
-                ].map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-cyan-400 flex-shrink-0">{i + 1}.</span>
-                    {tip}
-                  </li>
+                {['Choose a simulation from the list above', 'Use ▶ Play for auto-advance every 3 seconds', 'Use ‹ › arrows to step manually', 'Click the timeline bar to jump to any step', 'Click any device on the diagram to learn about it', 'Drag devices to rearrange the diagram'].map((tip, i) => (
+                  <li key={i} className="flex items-start gap-2"><span className="text-cyan-400 flex-shrink-0">{i + 1}.</span>{tip}</li>
                 ))}
               </ul>
             </div>
           )}
-
         </div>
 
-        {/* ── Right Panel — Diagram ───────────────────────────── */}
+        {/* Right Panel — Diagram */}
         <div className="lg:col-span-2">
-          <div
-            className="rounded-2xl border border-gray-800 overflow-hidden"
-            style={{ height: '700px', background: '#0a0c10' }}
-          >
-            <ReactFlow
-              nodes={nodesWithHandler}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{ padding: 0.25 }}
-              proOptions={{ hideAttribution: true }}
-            >
+          <div className="rounded-2xl border border-gray-800 overflow-hidden" style={{ height: '700px', background: '#0a0c10' }}>
+            <ReactFlow nodes={nodesWithHandler} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.25 }} proOptions={{ hideAttribution: true }}>
               <Background color="#1f2937" gap={28} size={1} />
               <Controls />
             </ReactFlow>
           </div>
-
-          {/* Bottom status bar */}
           {activeProtocol && currentStepData && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-3 rounded-xl border px-4 py-3 flex items-center gap-3"
-              style={{
-                backgroundColor: activeProtocol.color + '08',
-                borderColor: activeProtocol.color + '30',
-              }}
-            >
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3 rounded-xl border px-4 py-3 flex items-center gap-3" style={{ backgroundColor: activeProtocol.color + '08', borderColor: activeProtocol.color + '30' }}>
               <span className="text-xl">{activeProtocol.emoji}</span>
               <div className="flex-1">
-                <p className="text-xs font-semibold" style={{ color: activeProtocol.color }}>
-                  {activeProtocol.label} — {currentStepData.title}
-                </p>
-                <p className="text-gray-500 text-xs mt-0.5">
-                  Currently at: {deviceInfo[currentStepData.device]?.icon} {deviceInfo[currentStepData.device]?.label}
-                  {' · '}{currentStepData.layer}
-                </p>
+                <p className="text-xs font-semibold" style={{ color: activeProtocol.color }}>{activeProtocol.label} — {currentStepData.title}</p>
+                <p className="text-gray-500 text-xs mt-0.5">Currently at: {deviceInfo[currentStepData.device]?.icon} {deviceInfo[currentStepData.device]?.label} · {currentStepData.layer}</p>
               </div>
-              {isPlaying && (
-                <div
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ backgroundColor: activeProtocol.color }}
-                />
-              )}
+              {isPlaying && <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activeProtocol.color }} />}
             </motion.div>
           )}
         </div>
-
       </div>
     </div>
   )
+}
+
+// ── Main Component — auto-detects mobile vs desktop ────────────
+function NetworkLab() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024)
+
+  useEffect(() => {
+    function handleResize() { setIsMobile(window.innerWidth < 1024) }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isMobile ? <MobileNetworkLab /> : <DesktopNetworkLab />
 }
 
 export default NetworkLab
